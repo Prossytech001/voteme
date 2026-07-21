@@ -1,15 +1,3 @@
-/* @import "tailwindcss";
-
-:root {
-  --color-gold: #D4AF37;
-  --color-dark: #1a1310;
-}
-
-body {
-  background: linear-gradient(180deg, #1a1310 0%, #2b1d15 100%);
-  min-height: 100vh;
-  color: #f5f0e8;
-} */
 @import "tailwindcss";
 
 :root {
@@ -27,6 +15,21 @@ body {
   --font-display: 'Fraunces', serif;
   --font-body: 'Inter', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+}
+
+#root {
+  overflow-x: hidden;
+  width: 100%;
 }
 
 body {
@@ -78,4 +81,22 @@ body {
   width: 64px;
   background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
   margin: 0 auto;
+}
+
+/* Skeleton loading shimmer */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #EDEBE1;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.65), transparent);
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer {
+  100% { transform: translateX(100%); }
 }

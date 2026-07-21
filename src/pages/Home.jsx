@@ -31,21 +31,25 @@ export default function Home() {
     <div style={{ background: 'var(--color-paper)', minHeight: '100vh' }}>
       <Hero />
 
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        {loading && (
-          <p className="text-center text-sm" style={{ color: 'var(--color-ink-soft)' }}>Loading categories…</p>
+      <div className="max-w-3xl mx-auto px-4 py-10 w-full">
+        {loading ? (
+          <div className="grid gap-10 min-w-0">
+            {[1, 2, 3].map((i) => (
+              <CategorySkeleton key={i} />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-10 min-w-0">
+            {categories.map((c) => (
+              <CategorySection
+                key={c.id}
+                category={c}
+                nominees={nomineesByCategory[c.id] || []}
+                onVote={(n) => setActiveNominee({ ...n, category_name: c.name })}
+              />
+            ))}
+          </div>
         )}
-
-        <div className="grid gap-10">
-          {categories.map((c) => (
-            <CategorySection
-              key={c.id}
-              category={c}
-              nominees={nomineesByCategory[c.id] || []}
-              onVote={(n) => setActiveNominee({ ...n, category_name: c.name })}
-            />
-          ))}
-        </div>
       </div>
 
       {activeNominee && (
@@ -135,15 +139,45 @@ function Hero() {
   );
 }
 
+function CategorySkeleton() {
+  return (
+    <section className="min-w-0 w-full">
+      <div
+        className="flex items-center justify-between rounded-full mb-4 pl-6 pr-2 py-2"
+        style={{ background: '#F5F5F1' }}
+      >
+        <div className="skeleton rounded-md h-4 w-40" />
+        <div className="shrink-0 rounded-full bg-white shadow-sm" style={{ width: 40, height: 40 }} />
+      </div>
+
+      <div className="flex gap-3 overflow-x-hidden px-1">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="ballot-stub rounded-lg shrink-0" style={{ width: 168 }}>
+            <div className="ballot-stub-content p-3">
+              <div className="skeleton w-full h-28 rounded-md mb-2" />
+              <div className="skeleton h-3 w-4/5 rounded mb-2" />
+              <div className="skeleton h-1.5 w-full rounded-full mb-2" />
+              <div className="flex justify-between">
+                <div className="skeleton h-2.5 w-8 rounded" />
+                <div className="skeleton h-2.5 w-12 rounded" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function CategorySection({ category, nominees, onVote }) {
   const totalVotes = useMemo(() => nominees.reduce((s, n) => s + n.total_votes, 0), [nominees]);
 
   return (
-    <section>
+    <section className="min-w-0 w-full">
       <Link
         to={`/results/${category.id}`}
         className="flex items-center justify-between rounded-full mb-4 pl-6 pr-2 py-2 hover:bg-[#F0F0EC] transition"
-        style={{ background: '#d8d8d7' }}
+        style={{ background: '#F5F5F1' }}
       >
         <span
           className="text-sm sm:text-base uppercase tracking-wide truncate"

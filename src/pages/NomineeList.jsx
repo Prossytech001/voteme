@@ -33,7 +33,21 @@ export default function NomineeList() {
           </Link>
         </div>
 
-        {loading && <p className="text-sm" style={{ color: 'var(--color-ink-soft)' }}>Loading…</p>}
+        {loading && (
+          <div className="grid gap-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="ballot-stub rounded-lg flex items-center justify-between shadow-sm">
+                <div className="ballot-stub-content py-4 pr-4 flex items-center justify-between w-full">
+                  <div className="flex-1">
+                    <div className="skeleton h-4 rounded mb-2" style={{ width: '50%' }} />
+                    <div className="skeleton h-3 w-16 rounded" />
+                  </div>
+                  <div className="skeleton h-8 w-16 rounded-md" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="grid gap-3">
           {nominees.map((n) => (

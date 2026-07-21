@@ -59,12 +59,39 @@ export default function VoteModal({ nominee, pricePerVote, onClose }) {
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="text-xs" style={{ color: 'var(--color-ink-soft)' }}>Number of votes</label>
-            <input
-              type="number" min="1" value={voteCount}
-              onChange={(e) => setVoteCount(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-full mt-1 rounded-md px-3 py-2 focus:outline-none focus:ring-2"
-              style={inputStyle}
-            />
+            <div
+              className="flex items-center justify-between mt-1 rounded-full px-2 py-1.5"
+              style={{ background: 'var(--color-paper)', border: '1px solid #E2E0D5' }}
+            >
+              <button
+                type="button"
+                onClick={() => setVoteCount((v) => Math.max(1, v - 1))}
+                className="flex items-center justify-center rounded-full text-white shrink-0 hover:opacity-90 transition"
+                style={{ width: 32, height: 32, background: 'var(--color-green-deep)' }}
+                aria-label="Decrease votes"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 2" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="12" height="2" rx="1" fill="white" />
+                </svg>
+              </button>
+
+              <span className="font-mono-tally text-lg font-semibold" style={{ color: 'var(--color-ink)' }}>
+                {voteCount}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setVoteCount((v) => v + 1)}
+                className="flex items-center justify-center rounded-full text-white shrink-0 hover:opacity-90 transition"
+                style={{ width: 32, height: 32, background: 'var(--color-green-deep)' }}
+                aria-label="Increase votes"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="5" width="2" height="12" rx="1" fill="white" />
+                  <rect y="5" width="12" height="2" rx="1" fill="white" />
+                </svg>
+              </button>
+            </div>
           </div>
           <div>
             <label className="text-xs" style={{ color: 'var(--color-ink-soft)' }}>Your name</label>

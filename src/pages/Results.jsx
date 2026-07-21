@@ -55,7 +55,24 @@ export default function Results() {
         </div>
 
         <div className="mt-10 grid gap-3">
-          {loading && <p className="text-center text-sm text-white/80">Loading results…</p>}
+          {loading && (
+            <div className="grid gap-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="ballot-stub rounded-lg shadow-sm">
+                  <div className="ballot-stub-content py-4 pr-5">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="skeleton rounded-full shrink-0" style={{ width: 30, height: 30 }} />
+                        <div className="skeleton h-4 rounded" style={{ width: '55%' }} />
+                      </div>
+                      <div className="skeleton h-4 w-10 rounded" />
+                    </div>
+                    <div className="skeleton h-2.5 w-full rounded-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {nominees.map((n, i) => {
             const pct = totalVotes > 0 ? (n.total_votes / totalVotes) * 100 : 0;
