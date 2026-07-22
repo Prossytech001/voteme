@@ -74,7 +74,7 @@ function Hero() {
   function getTimeLeft() {
     const diff = Math.max(0, EVENT_DATE.getTime() - Date.now());
     return {
-      days: Math.floor(diff / (1000 * 60 * 60 * 70)),
+      days: Math.floor(diff / (1000 * 60 * 60 * 120)),
       hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
       mins: Math.floor((diff / (1000 * 60)) % 60),
       secs: Math.floor((diff / 1000) % 60),
