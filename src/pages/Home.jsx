@@ -177,11 +177,11 @@ function CategorySection({ category, nominees, onVote }) {
       <Link
         to={`/results/${category.id}`}
         className="flex items-center justify-between rounded-full mb-4 pl-6 pr-2 py-2 hover:bg-[#F0F0EC] transition"
-        style={{ background: '#F5F5F1' }}
+        style={{ background: '#C9A227' }}
       >
         <span
           className="text-sm sm:text-base uppercase tracking-wide truncate"
-          style={{ color: 'var(--color-ink)', fontFamily: 'var(--font-mono)', fontWeight: 500, letterSpacing: '0.03em' }}
+          style={{ color: 'var( --color-paper)', fontFamily: 'var(--font-mono)', fontWeight: 800, letterSpacing: '0.03em' }}
         >
           {category.name}
         </span>

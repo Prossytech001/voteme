@@ -13,7 +13,7 @@ export default function CategoryList() {
   }, []);
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, var(--color-green-deep) 0%, var(--color-green-mid) 220px, var(--color-paper) 220px)' }}>
+    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, var(--color-green-deep) 0%, var(--color-green-mid) 220px, var(--color-paper) )' }}>
       <div className="max-w-2xl mx-auto px-5 pt-14 pb-16">
 
         <header className="text-center mb-3">
@@ -56,7 +56,7 @@ export default function CategoryList() {
                   <Link
                     to={`/results/${c.id}`}
                     className="text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap hover:opacity-90"
-                    style={{ background: 'rgba(11,93,52,0.08)', color: 'var(--color-green-deep)' }}
+                    style={{ background: '--color-green-mid', color: 'var(--color-green-deep)' }}
                   >
                     Results
                   </Link>
