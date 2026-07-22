@@ -3,7 +3,7 @@ import {
   getCategories, getNominees, getPricePerVote,
   adminCreateCategory, adminUpdateCategory, adminDeleteCategory,
   adminCreateNominee, adminUpdateNominee, adminDeleteNominee,
-  adminUpdatePrice, adminGetAllVotes,
+  adminUpdatePrice, adminGetAllVotes, adminReconcilePending,
 } from '../api';
 
 const SESSION_KEY = 'awards_admin_key';
@@ -336,18 +336,58 @@ function PriceTab({ adminKey }) {
 function TransactionsTab({ adminKey }) {
   const [votes, setVotes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reconciling, setReconciling] = useState(false);
+  const [reconcileResult, setReconcileResult] = useState(null);
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
     adminGetAllVotes(adminKey).then(setVotes).finally(() => setLoading(false));
-  }, [adminKey]);
+  };
 
+  useEffect(() => { load(); }, [adminKey]);
+
+  const handleReconcile = async () => {
+    setReconciling(true);
+    setReconcileResult(null);
+    try {
+      const result = await adminReconcilePending(adminKey);
+      setReconcileResult(result);
+      load(); // refresh the table to show updated statuses
+    } catch (err) {
+      setReconcileResult({ error: err.response?.data?.error || 'Reconcile failed' });
+    } finally {
+      setReconciling(false);
+    }
+  };
+
+  const pendingCount = votes.filter(v => v.status === 'pending').length;
   const totalRevenue = votes.filter(v => v.status === 'success').reduce((sum, v) => sum + v.amount_paid, 0) / 100;
 
   return (
     <div>
-      <p className="text-sm mb-4 font-mono-tally" style={{ color: 'var(--color-green-deep)' }}>
-        Total confirmed revenue: ₦{totalRevenue.toLocaleString()}
-      </p>
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+        <p className="text-sm font-mono-tally" style={{ color: 'var(--color-green-deep)' }}>
+          Total confirmed revenue: ₦{totalRevenue.toLocaleString()}
+        </p>
+        <button
+          onClick={handleReconcile}
+          disabled={reconciling || pendingCount === 0}
+          className="text-white text-xs font-medium px-3 py-2 rounded-md hover:opacity-90 disabled:opacity-50"
+          style={{ background: 'var(--color-green-deep)' }}
+        >
+          {reconciling ? 'Checking with Paystack…' : `Reconcile ${pendingCount} pending payment${pendingCount === 1 ? '' : 's'}`}
+        </button>
+      </div>
+
+      {reconcileResult && !reconcileResult.error && (
+        <p className="text-xs mb-4 px-3 py-2 rounded-md" style={{ background: 'rgba(31,157,85,0.1)', color: 'var(--color-green-deep)' }}>
+          Checked {reconcileResult.checked} · Confirmed {reconcileResult.confirmed} · Failed {reconcileResult.failed} · Still pending {reconcileResult.stillPending}
+        </p>
+      )}
+      {reconcileResult?.error && (
+        <p className="text-xs mb-4 text-red-600">{reconcileResult.error}</p>
+      )}
+
       {loading && <p className="text-sm" style={{ color: 'var(--color-ink-soft)' }}>Loading transactions…</p>}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">

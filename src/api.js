@@ -38,4 +38,7 @@ export const adminUpdatePrice = (adminKey, priceNaira) =>
 export const adminGetAllVotes = (adminKey) =>
   api.get('/votes/admin/all', adminHeaders(adminKey)).then(r => r.data);
 
+export const adminReconcilePending = (adminKey) =>
+  api.post('/votes/admin/reconcile-pending', {}, adminHeaders(adminKey)).then(r => r.data);
+
 export default api;
