@@ -139,7 +139,7 @@ export default function Results() {
         )}
 
         <div className="text-center mt-4">
-          <Link to={`/category/${categoryId}`} className="text-sm font-medium hover:underline" style={{ color: 'var(--color-green-deep)' }}>
+          <Link to={`/category/${categoryId}`} className="text-sm font-medium hover:underline items-center  rounded-full mb-4 pl-6 pr-2 py-2 hover:bg-[#F0F0EC] transition" style={{ color: 'var( --color-paper)', background: '#C9A227' }}>
             Go to voting →
           </Link>
         </div>
