@@ -74,7 +74,7 @@ function Hero() {
   function getTimeLeft() {
     const diff = Math.max(0, EVENT_DATE.getTime() - Date.now());
     return {
-      days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+      days: Math.floor(diff / (1000 * 60 * 60 * 70)),
       hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
       mins: Math.floor((diff / (1000 * 60)) % 60),
       secs: Math.floor((diff / 1000) % 60),
@@ -120,7 +120,7 @@ function Hero() {
             <div key={u.label} className="flex flex-col items-center">
               <div
                 className="w-16 sm:w-20 rounded-lg py-3 font-mono-tally text-2xl sm:text-3xl font-semibold"
-                style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.15)' }}
+                style={{ background: 'rgba(235, 195, 20, 0.84)', color: 'white', border: '1px solid rgba(255,255,255,0.15)' }}
               >
                 {String(u.value).padStart(2, '0')}
               </div>
