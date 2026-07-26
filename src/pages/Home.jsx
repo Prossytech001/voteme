@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { getCategories, getNominees, getPricePerVote } from '../api';
 import VoteModal from '../components/VoteModal';
 
-// Countdown length in hours — starts ticking down from this the moment the page loads.
-const COUNTDOWN_HOURS = 15;
+// Fixed countdown target — same for every visitor, does NOT reset on refresh.
+// Edit this line to change when the countdown hits zero.
+const COUNTDOWN_TARGET = new Date('2026-07-26T17:00:00');
 
 export default function Home() {
   const [categories, setCategories] = useState([]);
@@ -64,8 +65,6 @@ export default function Home() {
 }
 
 function Hero() {
-  // Lock the target time once on mount, so it doesn't reset on re-render.
-  const [targetTime] = useState(() => Date.now() + COUNTDOWN_HOURS * 60 * 60 * 1000);
   const [timeLeft, setTimeLeft] = useState(getTimeLeft());
 
   useEffect(() => {
@@ -74,7 +73,7 @@ function Hero() {
   }, []);
 
   function getTimeLeft() {
-    const diff = Math.max(0, targetTime - Date.now());
+    const diff = Math.max(0, COUNTDOWN_TARGET.getTime() - Date.now());
     return {
       hours: Math.floor(diff / (1000 * 60 * 60)),
       mins: Math.floor((diff / (1000 * 60)) % 60),
@@ -97,6 +96,7 @@ function Hero() {
       />
       {/* Dark overlay so white/gold text stays legible over the photo */}
       <div
+        className="absolute inset-0"
         style={{ background: 'linear-gradient(160deg, rgba(11,22,15,0.75) 0%, rgba(11,22,15,0.55) 60%, rgba(11,22,15,0.85) 100%)' }}
       />
 
