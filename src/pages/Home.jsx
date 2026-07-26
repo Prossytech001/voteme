@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { getCategories, getNominees, getPricePerVote } from '../api';
 import VoteModal from '../components/VoteModal';
 
-// Set this to the actual event date/time — drives the countdown timer below.
-const EVENT_DATE = new Date('2026-08-15T22:00:00');
+// Countdown length in hours — starts ticking down from this the moment the page loads.
+const COUNTDOWN_HOURS = 15;
 
 export default function Home() {
   const [categories, setCategories] = useState([]);
@@ -64,6 +64,8 @@ export default function Home() {
 }
 
 function Hero() {
+  // Lock the target time once on mount, so it doesn't reset on re-render.
+  const [targetTime] = useState(() => Date.now() + COUNTDOWN_HOURS * 60 * 60 * 1000);
   const [timeLeft, setTimeLeft] = useState(getTimeLeft());
 
   useEffect(() => {
@@ -72,17 +74,15 @@ function Hero() {
   }, []);
 
   function getTimeLeft() {
-    const diff = Math.max(0, EVENT_DATE.getTime() - Date.now());
+    const diff = Math.max(0, targetTime - Date.now());
     return {
-      days: Math.floor(diff / (1000 * 60 * 60 * 260)),
-      hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+      hours: Math.floor(diff / (1000 * 60 * 60)),
       mins: Math.floor((diff / (1000 * 60)) % 60),
       secs: Math.floor((diff / 1000) % 60),
     };
   }
 
   const units = [
-    { label: 'Days', value: timeLeft.days },
     { label: 'Hours', value: timeLeft.hours },
     { label: 'Mins', value: timeLeft.mins },
     { label: 'Secs', value: timeLeft.secs },
@@ -97,7 +97,6 @@ function Hero() {
       />
       {/* Dark overlay so white/gold text stays legible over the photo */}
       <div
-        className="absolute inset-0"
         style={{ background: 'linear-gradient(160deg, rgba(11,22,15,0.75) 0%, rgba(11,22,15,0.55) 60%, rgba(11,22,15,0.85) 100%)' }}
       />
 
@@ -120,7 +119,7 @@ function Hero() {
             <div key={u.label} className="flex flex-col items-center">
               <div
                 className="w-16 sm:w-20 rounded-lg py-3 font-mono-tally text-2xl sm:text-3xl font-semibold"
-                style={{ background: 'rgba(235, 195, 20, 0.84)', color: 'white', border: '1px solid rgba(255,255,255,0.15)' }}
+                style={{ background: '#C9A227', color: 'white', border: '1px solid rgba(255,255,255,0.15)' }}
               >
                 {String(u.value).padStart(2, '0')}
               </div>
@@ -177,11 +176,11 @@ function CategorySection({ category, nominees, onVote }) {
       <Link
         to={`/results/${category.id}`}
         className="flex items-center justify-between rounded-full mb-4 pl-6 pr-2 py-2 hover:bg-[#F0F0EC] transition"
-        style={{ background: '#C9A227' }}
+        style={{ background: '#F5F5F1' }}
       >
         <span
           className="text-sm sm:text-base uppercase tracking-wide truncate"
-          style={{ color: 'var( --color-paper)', fontFamily: 'var(--font-mono)', fontWeight: 800, letterSpacing: '0.03em' }}
+          style={{ color: 'var(--color-ink)', fontFamily: 'var(--font-mono)', fontWeight: 500, letterSpacing: '0.03em' }}
         >
           {category.name}
         </span>
