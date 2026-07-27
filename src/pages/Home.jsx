@@ -5,7 +5,7 @@ import VoteModal from '../components/VoteModal';
 
 // Fixed countdown target — same for every visitor, does NOT reset on refresh.
 // Edit this line to change when the countdown hits zero.
-const COUNTDOWN_TARGET = new Date('2026-07-27T00:00:00');
+const COUNTDOWN_TARGET = new Date('2026-07-27T09:00:00');
 
 export default function Home() {
   const [categories, setCategories] = useState([]);
