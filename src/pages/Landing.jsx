@@ -8,7 +8,7 @@ export default function Landing() {
       {/* Flyer background image */}
       <div
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/images/event-banner.jpeg')" }}
+        style={{ backgroundImage: "url('/images/lands.jpeg')" }}
       />
       {/* Dark overlay for text legibility */}
       <div
@@ -30,10 +30,10 @@ export default function Landing() {
             <span className="font-display text-lg" style={{ color: 'var(--color-gold)' }}>A</span>
           </div>
           <p className="uppercase tracking-[0.2em] text-[11px] text-white/80 mb-3">
-            Office of the Director of Social · ASSESS, UNIZIK
+            BLACK CULTURE ENTERTAINMENT
           </p>
           <h1 className="font-display text-white text-4xl sm:text-5xl leading-tight mb-4" style={{ fontWeight: 600 }}>
-            Dinner &amp; Awards Night
+            NWOKE NA ASOMKPALI 2.0
           </h1>
           <p className="text-sm text-white/85 mb-10">
             Vote for your favorite nominees across every award category. Every vote counts — and results update live for everyone to see.

@@ -41,4 +41,15 @@ export const adminGetAllVotes = (adminKey) =>
 export const adminReconcilePending = (adminKey) =>
   api.post('/votes/admin/reconcile-pending', {}, adminHeaders(adminKey)).then(r => r.data);
 
+export const adminReconcileFull = (adminKey) =>
+  api.post('/votes/admin/reconcile-full', {}, adminHeaders(adminKey)).then(r => r.data);
+
+export const adminGetEarningsSummary = (adminKey) =>
+  api.get('/votes/admin/earnings-summary', adminHeaders(adminKey)).then(r => r.data);
+
+export const getPlatformFee = () => api.get('/settings/platform-fee').then(r => r.data);
+
+export const adminUpdatePlatformFee = (adminKey, feePercent) =>
+  api.patch('/settings/platform-fee', { fee_percent: feePercent }, adminHeaders(adminKey)).then(r => r.data);
+
 export default api;

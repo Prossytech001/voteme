@@ -3,8 +3,10 @@ import {
   getCategories, getNominees, getPricePerVote,
   adminCreateCategory, adminUpdateCategory, adminDeleteCategory,
   adminCreateNominee, adminUpdateNominee, adminDeleteNominee,
-  adminUpdatePrice, adminGetAllVotes, adminReconcilePending,
+  adminUpdatePrice, adminGetAllVotes, adminReconcilePending, adminReconcileFull,
+  adminGetEarningsSummary, adminUpdatePlatformFee,
 } from '../api';
+import { socket } from '../socket';
 
 const SESSION_KEY = 'awards_admin_key';
 
@@ -18,7 +20,6 @@ export default function Admin() {
     e.preventDefault();
     setAuthError('');
     try {
-      // Cheap way to validate the key: try a harmless admin call
       await adminGetAllVotes(keyInput);
       sessionStorage.setItem(SESSION_KEY, keyInput);
       setAdminKey(keyInput);
@@ -33,7 +34,7 @@ export default function Admin() {
       <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'linear-gradient(180deg, var(--color-green-deep) 0%, var(--color-green-mid) 100%)' }}>
         <form onSubmit={handleUnlock} className="bg-white rounded-xl p-8 w-full max-w-sm shadow-2xl" style={{ border: '1px solid #E2E0D5' }}>
           <h1 className="font-display text-2xl mb-1" style={{ color: 'var(--color-ink)', fontWeight: 600 }}>Admin access</h1>
-          <p className="text-xs mb-5" style={{ color: 'var(--color-ink-soft)' }}>Enter the admin key to manage categories and nominees.</p>
+          <p className="text-xs mb-5" style={{ color: 'var(--color-ink-soft)' }}>Enter the admin key to manage categories, nominees, and earnings.</p>
           <input
             type="password"
             value={keyInput}
@@ -59,20 +60,45 @@ export default function Admin() {
 }
 
 function AdminDashboard({ adminKey, onLogout }) {
-  const [tab, setTab] = useState('categories');
+  const [tab, setTab] = useState('overview');
+  const [connected, setConnected] = useState(socket.connected);
+
+  useEffect(() => {
+    const onConnect = () => setConnected(true);
+    const onDisconnect = () => setConnected(false);
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+    };
+  }, []);
 
   const tabs = [
+    { id: 'overview', label: 'Overview' },
     { id: 'categories', label: 'Categories' },
     { id: 'nominees', label: 'Nominees' },
-    { id: 'price', label: 'Vote price' },
+    { id: 'price', label: 'Vote price & fee' },
     { id: 'transactions', label: 'Transactions' },
   ];
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-paper)' }}>
-      <div className="max-w-4xl mx-auto px-5 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="font-display text-2xl" style={{ color: 'var(--color-green-deep)', fontWeight: 600 }}>Admin dashboard</h1>
+      <div className="max-w-5xl mx-auto px-5 py-8">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <h1 className="font-display text-2xl" style={{ color: 'var(--color-green-deep)', fontWeight: 600 }}>Admin dashboard</h1>
+            <span
+              className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium"
+              style={{
+                background: connected ? 'rgba(31,157,85,0.12)' : 'rgba(220,38,38,0.1)',
+                color: connected ? 'var(--color-green-deep)' : '#DC2626',
+              }}
+            >
+              <span className="live-dot" style={{ background: connected ? 'var(--color-emerald)' : '#DC2626' }} />
+              {connected ? 'Live' : 'Reconnecting…'}
+            </span>
+          </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md" style={{ background: 'var(--color-ink)' }}>
               <span className="text-[10px] uppercase tracking-wide text-white/60">by</span>
@@ -82,12 +108,12 @@ function AdminDashboard({ adminKey, onLogout }) {
           </div>
         </div>
 
-        <div className="flex gap-2 mb-6 border-b" style={{ borderColor: '#E2E0D5' }}>
+        <div className="flex gap-2 mb-6 border-b overflow-x-auto" style={{ borderColor: '#E2E0D5' }}>
           {tabs.map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className="px-4 py-2 text-sm font-medium -mb-px border-b-2 transition"
+              className="px-4 py-2 text-sm font-medium -mb-px border-b-2 transition whitespace-nowrap"
               style={{
                 borderColor: tab === t.id ? 'var(--color-green-deep)' : 'transparent',
                 color: tab === t.id ? 'var(--color-green-deep)' : 'var(--color-ink-soft)',
@@ -98,10 +124,114 @@ function AdminDashboard({ adminKey, onLogout }) {
           ))}
         </div>
 
+        {tab === 'overview' && <OverviewTab adminKey={adminKey} />}
         {tab === 'categories' && <CategoriesTab adminKey={adminKey} />}
         {tab === 'nominees' && <NomineesTab adminKey={adminKey} />}
         {tab === 'price' && <PriceTab adminKey={adminKey} />}
         {tab === 'transactions' && <TransactionsTab adminKey={adminKey} />}
+      </div>
+    </div>
+  );
+}
+
+// ---- Overview: the colorful earnings + payment-health dashboard ----
+function OverviewTab({ adminKey }) {
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = () => adminGetEarningsSummary(adminKey).then(setSummary).finally(() => setLoading(false));
+
+  useEffect(() => {
+    load();
+    const onUpdate = () => load();
+    socket.on('earnings:updated', onUpdate);
+    socket.on('vote:updated', onUpdate);
+    return () => {
+      socket.off('earnings:updated', onUpdate);
+      socket.off('vote:updated', onUpdate);
+    };
+  }, [adminKey]);
+
+  if (loading || !summary) {
+    return (
+      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+        {[1, 2, 3, 4].map(i => <div key={i} className="skeleton rounded-2xl" style={{ height: 110 }} />)}
+      </div>
+    );
+  }
+
+  const naira = (kobo) => `₦${(kobo / 100).toLocaleString()}`;
+
+  const cards = [
+    {
+      label: 'Total votes cast', value: summary.total_votes.toLocaleString(), icon: '🗳️',
+      color: 'var(--color-admin-purple)', soft: 'var(--color-admin-purple-soft)',
+    },
+    {
+      label: 'Total collected', value: naira(summary.total_collected_kobo), icon: '💰',
+      color: 'var(--color-admin-blue)', soft: 'var(--color-admin-blue-soft)',
+    },
+    {
+      label: 'Organizer earned', value: naira(summary.organizer_earned_kobo), icon: '🏆',
+      color: 'var(--color-green-deep)', soft: 'rgba(31,157,85,0.12)',
+    },
+    {
+      label: 'ProxAfrica fee', value: naira(summary.platform_fee_kobo), icon: '⚡',
+      color: 'var(--color-admin-coral)', soft: 'var(--color-admin-coral-soft)',
+    },
+  ];
+
+  const health = [
+    { label: 'Confirmed', value: summary.confirmed_count, color: 'var(--color-green-deep)', soft: 'rgba(31,157,85,0.12)' },
+    { label: 'Auto-reconciling', value: summary.pending_count, color: 'var(--color-admin-amber)', soft: 'var(--color-admin-amber-soft)' },
+    { label: 'Failed (declined)', value: summary.failed_count, color: 'var(--color-admin-coral)', soft: 'var(--color-admin-coral-soft)' },
+  ];
+
+  const feePercent = summary.platform_fee_percent;
+
+  return (
+    <div>
+      <div className="grid gap-3 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+        {cards.map(c => (
+          <div key={c.label} className="stat-card" style={{ background: c.soft }}>
+            <div className="stat-card-icon" style={{ background: 'white' }}>{c.icon}</div>
+            <p className="text-[12px] mb-1" style={{ color: 'var(--color-ink-soft)' }}>{c.label}</p>
+            <p className="font-mono-tally text-xl font-semibold" style={{ color: c.color }}>{c.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-[1.3fr_1fr]">
+        <div className="ballot-stub rounded-xl">
+          <div className="ballot-stub-content py-4 pr-5">
+            <p className="text-sm font-medium mb-3" style={{ color: 'var(--color-ink)' }}>Payment health</p>
+            <div className="grid gap-2">
+              {health.map(h => (
+                <div key={h.label} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: h.soft }}>
+                  <span className="text-sm" style={{ color: 'var(--color-ink)' }}>{h.label}</span>
+                  <span className="font-mono-tally font-semibold" style={{ color: h.color }}>{h.value.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="ballot-stub rounded-xl">
+          <div className="ballot-stub-content py-4 pr-5">
+            <p className="text-sm font-medium mb-3" style={{ color: 'var(--color-ink)' }}>Per ₦100 vote split</p>
+            <div style={{ display: 'flex', height: 10, borderRadius: 6, overflow: 'hidden' }}>
+              <div style={{ width: `${100 - feePercent}%`, background: 'var(--color-emerald)' }} />
+              <div style={{ width: `${feePercent}%`, background: 'var(--color-admin-coral)' }} />
+            </div>
+            <div className="flex justify-between mt-2 text-xs" style={{ color: 'var(--color-ink-soft)' }}>
+              <span>Organizer ₦{(100 - feePercent).toFixed(0)}</span>
+              <span>ProxAfrica ₦{feePercent.toFixed(0)}</span>
+            </div>
+            <p className="text-[11px] mt-3" style={{ color: 'var(--color-ink-soft)' }}>
+              Adjust the fee % in "Vote price &amp; fee". Changes only apply to votes confirmed afterward.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -297,8 +427,16 @@ function PriceTab({ adminKey }) {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
 
+  const [feePercent, setFeePercent] = useState('');
+  const [feeSaved, setFeeSaved] = useState(false);
+  const [feeError, setFeeError] = useState('');
+
   useEffect(() => {
     getPricePerVote().then(p => setPrice(p.price_per_vote_naira));
+  }, []);
+
+  useEffect(() => {
+    import('../api').then(({ getPlatformFee }) => getPlatformFee().then(f => setFeePercent(f.platform_fee_percent)));
   }, []);
 
   const handleSave = async (e) => {
@@ -313,23 +451,54 @@ function PriceTab({ adminKey }) {
     }
   };
 
+  const handleFeeSave = async (e) => {
+    e.preventDefault();
+    setFeeError('');
+    setFeeSaved(false);
+    try {
+      await adminUpdatePlatformFee(adminKey, parseFloat(feePercent));
+      setFeeSaved(true);
+    } catch (err) {
+      setFeeError(err.response?.data?.error || 'Failed to update platform fee');
+    }
+  };
+
   return (
-    <form onSubmit={handleSave} className="max-w-xs">
-      <label className="text-xs block mb-1" style={{ color: 'var(--color-ink-soft)' }}>Price per vote (₦)</label>
-      <input
-        type="number" min="1" step="1"
-        value={price}
-        onChange={(e) => setPrice(e.target.value)}
-        className="w-full rounded-md px-3 py-2 text-sm mb-3"
-        style={{ background: 'white', border: '1px solid #E2E0D5', color: 'var(--color-ink)' }}
-      />
-      {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
-      {saved && <p className="text-sm mb-3" style={{ color: 'var(--color-green-deep)' }}>Price updated.</p>}
-      <button type="submit" className="text-white text-sm font-medium px-4 py-2 rounded-md hover:opacity-90"
-        style={{ background: 'var(--color-green-deep)' }}>
-        Save price
-      </button>
-    </form>
+    <div className="grid gap-6 sm:grid-cols-2 max-w-xl">
+      <form onSubmit={handleSave}>
+        <label className="text-xs block mb-1" style={{ color: 'var(--color-ink-soft)' }}>Price per vote (₦)</label>
+        <input
+          type="number" min="1" step="1"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          className="w-full rounded-md px-3 py-2 text-sm mb-3"
+          style={{ background: 'white', border: '1px solid #E2E0D5', color: 'var(--color-ink)' }}
+        />
+        {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
+        {saved && <p className="text-sm mb-3" style={{ color: 'var(--color-green-deep)' }}>Price updated.</p>}
+        <button type="submit" className="text-white text-sm font-medium px-4 py-2 rounded-md hover:opacity-90"
+          style={{ background: 'var(--color-green-deep)' }}>
+          Save price
+        </button>
+      </form>
+
+      <form onSubmit={handleFeeSave}>
+        <label className="text-xs block mb-1" style={{ color: 'var(--color-ink-soft)' }}>ProxAfrica platform fee (%)</label>
+        <input
+          type="number" min="0" max="100" step="1"
+          value={feePercent}
+          onChange={(e) => setFeePercent(e.target.value)}
+          className="w-full rounded-md px-3 py-2 text-sm mb-3"
+          style={{ background: 'white', border: '1px solid var(--color-admin-coral)', color: 'var(--color-ink)' }}
+        />
+        {feeError && <p className="text-red-600 text-sm mb-3">{feeError}</p>}
+        {feeSaved && <p className="text-sm mb-3" style={{ color: 'var(--color-admin-coral)' }}>Fee updated. Applies to new payments only.</p>}
+        <button type="submit" className="text-white text-sm font-medium px-4 py-2 rounded-md hover:opacity-90"
+          style={{ background: 'var(--color-admin-coral)' }}>
+          Save fee %
+        </button>
+      </form>
+    </div>
   );
 }
 
@@ -338,13 +507,19 @@ function TransactionsTab({ adminKey }) {
   const [loading, setLoading] = useState(true);
   const [reconciling, setReconciling] = useState(false);
   const [reconcileResult, setReconcileResult] = useState(null);
+  const [fullReconciling, setFullReconciling] = useState(false);
 
   const load = () => {
     setLoading(true);
     adminGetAllVotes(adminKey).then(setVotes).finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [adminKey]);
+  useEffect(() => {
+    load();
+    const onUpdate = () => load();
+    socket.on('vote:updated', onUpdate);
+    return () => socket.off('vote:updated', onUpdate);
+  }, [adminKey]);
 
   const handleReconcile = async () => {
     setReconciling(true);
@@ -352,11 +527,25 @@ function TransactionsTab({ adminKey }) {
     try {
       const result = await adminReconcilePending(adminKey);
       setReconcileResult(result);
-      load(); // refresh the table to show updated statuses
+      load();
     } catch (err) {
       setReconcileResult({ error: err.response?.data?.error || 'Reconcile failed' });
     } finally {
       setReconciling(false);
+    }
+  };
+
+  const handleFullReconcile = async () => {
+    setFullReconciling(true);
+    setReconcileResult(null);
+    try {
+      const result = await adminReconcileFull(adminKey);
+      setReconcileResult(result);
+      load();
+    } catch (err) {
+      setReconcileResult({ error: err.response?.data?.error || 'Full reconcile failed' });
+    } finally {
+      setFullReconciling(false);
     }
   };
 
@@ -369,19 +558,37 @@ function TransactionsTab({ adminKey }) {
         <p className="text-sm font-mono-tally" style={{ color: 'var(--color-green-deep)' }}>
           Total confirmed revenue: ₦{totalRevenue.toLocaleString()}
         </p>
-        <button
-          onClick={handleReconcile}
-          disabled={reconciling || pendingCount === 0}
-          className="text-white text-xs font-medium px-3 py-2 rounded-md hover:opacity-90 disabled:opacity-50"
-          style={{ background: 'var(--color-green-deep)' }}
-        >
-          {reconciling ? 'Checking with Paystack…' : `Reconcile ${pendingCount} pending payment${pendingCount === 1 ? '' : 's'}`}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleReconcile}
+            disabled={reconciling || pendingCount === 0}
+            className="text-white text-xs font-medium px-3 py-2 rounded-md hover:opacity-90 disabled:opacity-50"
+            style={{ background: 'var(--color-green-deep)' }}
+          >
+            {reconciling ? 'Checking…' : `Reconcile ${pendingCount} pending`}
+          </button>
+          <button
+            onClick={handleFullReconcile}
+            disabled={fullReconciling}
+            className="text-white text-xs font-medium px-3 py-2 rounded-md hover:opacity-90 disabled:opacity-50"
+            style={{ background: 'var(--color-admin-blue)' }}
+            title="Cross-checks EVERY Paystack transaction against the database, including any missing entirely"
+          >
+            {fullReconciling ? 'Syncing with Paystack…' : 'Full sync with Paystack'}
+          </button>
+        </div>
       </div>
+
+      <p className="text-[11px] mb-4" style={{ color: 'var(--color-ink-soft)' }}>
+        Note: an automatic background job already re-checks any payment stuck pending for 3+ minutes every 90 seconds —
+        these buttons are just a manual backup, not required for normal operation.
+      </p>
 
       {reconcileResult && !reconcileResult.error && (
         <p className="text-xs mb-4 px-3 py-2 rounded-md" style={{ background: 'rgba(31,157,85,0.1)', color: 'var(--color-green-deep)' }}>
-          Checked {reconcileResult.checked} · Confirmed {reconcileResult.confirmed} · Failed {reconcileResult.failed} · Still pending {reconcileResult.stillPending}
+          {reconcileResult.fetchedFromPaystack !== undefined
+            ? `Fetched ${reconcileResult.fetchedFromPaystack} from Paystack · Updated ${reconcileResult.updated} · Inserted ${reconcileResult.inserted} · Unchanged ${reconcileResult.unchanged}`
+            : `Checked ${reconcileResult.checked} · Confirmed ${reconcileResult.confirmed} · Failed ${reconcileResult.failed} · Still pending ${reconcileResult.stillPending}`}
         </p>
       )}
       {reconcileResult?.error && (
@@ -399,6 +606,7 @@ function TransactionsTab({ adminKey }) {
               <th className="py-2 pr-3">Voter</th>
               <th className="py-2 pr-3">Votes</th>
               <th className="py-2 pr-3">Amount</th>
+              <th className="py-2 pr-3">Split (org / fee)</th>
               <th className="py-2 pr-3">Status</th>
             </tr>
           </thead>
@@ -413,13 +621,19 @@ function TransactionsTab({ adminKey }) {
                 <td className="py-2 pr-3">{v.voter_name || '—'} {v.voter_phone ? `(${v.voter_phone})` : ''}</td>
                 <td className="py-2 pr-3 font-mono-tally">{v.vote_count}</td>
                 <td className="py-2 pr-3 font-mono-tally">₦{(v.amount_paid / 100).toLocaleString()}</td>
+                <td className="py-2 pr-3 font-mono-tally text-xs" style={{ color: 'var(--color-ink-soft)' }}>
+                  {v.status === 'success'
+                    ? `₦${(v.organizer_payout_kobo / 100).toLocaleString()} / ₦${(v.platform_fee_kobo / 100).toLocaleString()}`
+                    : '—'}
+                </td>
                 <td className="py-2 pr-3">
                   <span
                     className="text-xs px-2 py-1 rounded-full font-medium"
                     style={{
-                      background: v.status === 'success' ? 'rgba(31,157,85,0.12)' : v.status === 'failed' ? 'rgba(220,38,38,0.1)' : 'rgba(201,162,39,0.15)',
-                      color: v.status === 'success' ? 'var(--color-green-deep)' : v.status === 'failed' ? '#DC2626' : '#8a6d1a',
+                      background: v.status === 'success' ? 'rgba(31,157,85,0.12)' : v.status === 'failed' ? 'var(--color-admin-coral-soft)' : 'var(--color-admin-amber-soft)',
+                      color: v.status === 'success' ? 'var(--color-green-deep)' : v.status === 'failed' ? 'var(--color-admin-coral)' : 'var(--color-admin-amber)',
                     }}
+                    title={v.status === 'failed' ? (v.failure_reason || '') : ''}
                   >
                     {v.status}
                   </span>

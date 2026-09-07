@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getNominees, getCategories } from '../api';
+import { socket } from '../socket';
 
-const POLL_INTERVAL_MS = 8000;
+// Fallback poll — the socket handles real-time updates, but this catches the rare case
+// where a client's connection drops silently without firing the 'disconnect' event.
+const FALLBACK_POLL_MS = 30000;
 
 export default function Results() {
   const { categoryId } = useParams();
@@ -10,6 +13,7 @@ export default function Results() {
   const [nominees, setNominees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatedAt, setUpdatedAt] = useState(null);
+  const [live, setLive] = useState(socket.connected);
   const timerRef = useRef(null);
 
   const load = async (isFirstLoad) => {
@@ -25,8 +29,22 @@ export default function Results() {
 
   useEffect(() => {
     load(true);
-    timerRef.current = setInterval(() => load(false), POLL_INTERVAL_MS);
-    return () => clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => load(false), FALLBACK_POLL_MS);
+
+    // Real-time: any vote confirming instantly refreshes this category's standings
+    const onVoteUpdate = () => load(false);
+    const onConnect = () => setLive(true);
+    const onDisconnect = () => setLive(false);
+    socket.on('vote:updated', onVoteUpdate);
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+
+    return () => {
+      clearInterval(timerRef.current);
+      socket.off('vote:updated', onVoteUpdate);
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+    };
   }, [categoryId]);
 
   const totalVotes = nominees.reduce((sum, n) => sum + n.total_votes, 0);
@@ -45,7 +63,10 @@ export default function Results() {
         <Link to="/vote" className="text-white/80 text-sm hover:text-white inline-block mb-6">← All categories</Link>
 
         <div className="text-center mb-2">
-          <p className="uppercase tracking-[0.2em] text-[11px] text-white/75 mb-2">Live results · updated automatically</p>
+          <p className="uppercase tracking-[0.2em] text-[11px] text-white/75 mb-2 flex items-center justify-center gap-1.5">
+            <span className="live-dot" style={{ background: live ? 'var(--color-emerald)' : '#E4CB7C' }} />
+            {live ? 'Live results' : 'Reconnecting…'}
+          </p>
           <h1 className="font-display text-white text-3xl sm:text-4xl leading-tight" style={{ fontWeight: 600 }}>
             {category ? category.name : 'Loading…'}
           </h1>
@@ -134,7 +155,7 @@ export default function Results() {
 
         {updatedAt && (
           <p className="text-center text-xs mt-8" style={{ color: 'var(--color-ink-soft)' }}>
-            Last updated {updatedAt.toLocaleTimeString()} · refreshes every {POLL_INTERVAL_MS / 1000}s
+            Last updated {updatedAt.toLocaleTimeString()} {live ? '· updates instantly as votes come in' : `· refreshing every ${FALLBACK_POLL_MS / 1000}s`}
           </p>
         )}
 

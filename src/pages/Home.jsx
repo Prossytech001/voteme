@@ -105,11 +105,11 @@ function Hero() {
           <span className="font-display text-lg" style={{ color: 'var(--color-gold)' }}>A</span>
         </div>
         <p className="uppercase tracking-[0.2em] text-[11px] text-white/80 mb-3">
-          Office of the Director of Social · ASSESS, UNIZIK
+          BLACK CULTURE ENTERTAINMENT
         </p>
         <h1 className="font-display text-white text-4xl sm:text-5xl leading-tight mb-2" style={{ fontWeight: 600 }}>
-          Dinner &amp; Awards Night
-        </h1>
+          NWOKE NA ASOMKPALI 2.0
+                  </h1>
         <p className="text-sm text-white/85 max-w-md mx-auto mb-8">
           Cast your vote for your favorite nominee in every category — results update live for everyone to see.
         </p>
