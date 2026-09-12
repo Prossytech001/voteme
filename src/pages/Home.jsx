@@ -5,7 +5,8 @@ import VoteModal from '../components/VoteModal';
 
 // Fixed countdown target — same for every visitor, does NOT reset on refresh.
 // Edit this line to change when the countdown hits zero.
-const COUNTDOWN_TARGET = new Date('2026-07-27T09:00:00');
+const COUNTDOWN_START = new Date('2026-09-13T00:00:00+01:00');
+const COUNTDOWN_END = new Date('2026-09-27T23:59:59+01:00');
 
 export default function Home() {
   const [categories, setCategories] = useState([]);
@@ -65,26 +66,92 @@ export default function Home() {
 }
 
 function Hero() {
-  const [timeLeft, setTimeLeft] = useState(getTimeLeft());
+  const [countdown, setCountdown] = useState(getCountdown());
 
   useEffect(() => {
-    const t = setInterval(() => setTimeLeft(getTimeLeft()), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => {
+      setCountdown(getCountdown());
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
-  function getTimeLeft() {
-    const diff = Math.max(0, COUNTDOWN_TARGET.getTime() - Date.now());
+  function getCountdown() {
+    const now = Date.now();
+    const start = COUNTDOWN_START.getTime();
+    const end = COUNTDOWN_END.getTime();
+
+    // BEFORE START
+    if (now < start) {
+      const diff = start - now;
+
+      return {
+        status: 'upcoming',
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+        mins: Math.floor((diff / (1000 * 60)) % 60),
+        secs: Math.floor((diff / 1000) % 60),
+      };
+    }
+
+    // AFTER END
+    if (now >= end) {
+      return {
+        status: 'ended',
+        days: 0,
+        hours: 0,
+        mins: 0,
+        secs: 0,
+      };
+    }
+
+    // ACTIVE
+    const diff = end - now;
+
     return {
-      hours: Math.floor(diff / (1000 * 60 * 60)),
+      status: 'active',
+      days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
       mins: Math.floor((diff / (1000 * 60)) % 60),
       secs: Math.floor((diff / 1000) % 60),
     };
   }
 
+  const getCountdownTitle = () => {
+    if (countdown.status === 'upcoming') {
+      return 'STARTING SOON';
+    }
+
+    if (countdown.status === 'active') {
+      return countdown.days === 0 ? 'ENDING TODAY' : 'VOTING ENDS IN';
+    }
+
+    return 'VOTING ENDED';
+  };
+
   const units = [
-    { label: 'Hours', value: timeLeft.hours },
-    { label: 'Mins', value: timeLeft.mins },
-    { label: 'Secs', value: timeLeft.secs },
+    {
+      label: 'Days',
+      value: countdown.days,
+      show:
+        countdown.status === 'upcoming' ||
+        countdown.status === 'active',
+    },
+    {
+      label: 'Hours',
+      value: countdown.hours,
+      show: true,
+    },
+    {
+      label: 'Mins',
+      value: countdown.mins,
+      show: true,
+    },
+    {
+      label: 'Secs',
+      value: countdown.secs,
+      show: true,
+    },
   ];
 
   return (
@@ -92,51 +159,189 @@ function Hero() {
       {/* Flyer background image */}
       <div
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/images/event-banner.jpeg')" }}
+        style={{
+          backgroundImage: "url('/images/event-banner.jpeg')",
+        }}
       />
-      {/* Dark overlay so white/gold text stays legible over the photo */}
+
+      {/* Dark overlay */}
       <div
         className="absolute inset-0"
-        style={{ background: 'linear-gradient(160deg, rgba(11,22,15,0.75) 0%, rgba(11,22,15,0.55) 60%, rgba(11,22,15,0.85) 100%)' }}
+        style={{
+          background:
+            'linear-gradient(160deg, rgba(11,22,15,0.75) 0%, rgba(11,22,15,0.55) 60%, rgba(11,22,15,0.85) 100%)',
+        }}
       />
 
       <div className="max-w-3xl mx-auto px-5 pt-14 pb-10 text-center relative z-10">
         <div className="seal mx-auto mb-5">
-          <span className="font-display text-lg" style={{ color: 'var(--color-gold)' }}>A</span>
+          <span
+            className="font-display text-lg"
+            style={{ color: 'var(--color-gold)' }}
+          >
+            A
+          </span>
         </div>
+
         <p className="uppercase tracking-[0.2em] text-[11px] text-white/80 mb-3">
           BLACK CULTURE ENTERTAINMENT
         </p>
-        <h1 className="font-display text-white text-4xl sm:text-5xl leading-tight mb-2" style={{ fontWeight: 600 }}>
+
+        <h1
+          className="font-display text-white text-4xl sm:text-5xl leading-tight mb-2"
+          style={{ fontWeight: 600 }}
+        >
           NWOKE NA ASOMKPALI 2.0
-                  </h1>
-        <p className="text-sm text-white/85 max-w-md mx-auto mb-8">
-          Cast your vote for your favorite nominee in every category — results update live for everyone to see.
+        </h1>
+
+        <p className="text-sm text-white/85 max-w-md mx-auto mb-4">
+          Cast your vote for your favorite nominee in every category —
+          results update live for everyone to see.
         </p>
 
-        <div className="flex justify-center gap-3 sm:gap-5">
-          {units.map((u) => (
-            <div key={u.label} className="flex flex-col items-center">
-              <div
-                className="w-16 sm:w-20 rounded-lg py-3 font-mono-tally text-2xl sm:text-3xl font-semibold"
-                style={{ background: '#C9A227', color: 'white', border: '1px solid rgba(255,255,255,0.15)' }}
-              >
-                {String(u.value).padStart(2, '0')}
-              </div>
-              <span className="text-[10px] uppercase tracking-wide text-white/70 mt-1.5">{u.label}</span>
-            </div>
-          ))}
-        </div>
+        {/* Countdown status */}
+        <p className="text-[11px] uppercase tracking-[0.2em] text-white/70 mb-3">
+          {getCountdownTitle()}
+        </p>
+
+        {/* Countdown */}
+        {countdown.status !== 'ended' ? (
+          <div className="flex justify-center gap-3 sm:gap-5">
+            {units
+              .filter((u) => u.show)
+              .map((u) => (
+                <div
+                  key={u.label}
+                  className="flex flex-col items-center"
+                >
+                  <div
+                    className="w-16 sm:w-20 rounded-lg py-3 font-mono-tally text-2xl sm:text-3xl font-semibold"
+                    style={{
+                      background: '#C9A227',
+                      color: 'white',
+                      border:
+                        '1px solid rgba(255,255,255,0.15)',
+                    }}
+                  >
+                    {String(u.value).padStart(2, '0')}
+                  </div>
+
+                  <span className="text-[10px] uppercase tracking-wide text-white/70 mt-1.5">
+                    {u.label}
+                  </span>
+                </div>
+              ))}
+          </div>
+        ) : (
+          <div
+            className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-semibold uppercase tracking-wide"
+            style={{
+              background: 'rgba(201,162,39,0.9)',
+              color: 'white',
+            }}
+          >
+            Voting has ended
+          </div>
+        )}
+
+        {/* Date information */}
+        <p className="text-[11px] text-white/60 mt-4">
+          {countdown.status === 'upcoming' &&
+            'Voting starts September 13, 2026'}
+
+          {countdown.status === 'active' &&
+            'Voting ends September 27, 2026'}
+
+          {countdown.status === 'ended' &&
+            'Voting closed on September 27, 2026'}
+        </p>
       </div>
 
-      {/* decorative fade so the page below eases out of the green */}
+      {/* Decorative fade */}
       <div
         className="absolute bottom-0 left-0 right-0 h-16"
-        style={{ background: 'linear-gradient(180deg, transparent, var(--color-paper))' }}
+        style={{
+          background:
+            'linear-gradient(180deg, transparent, var(--color-paper))',
+        }}
       />
     </div>
   );
 }
+
+// function Hero() {
+//   const [timeLeft, setTimeLeft] = useState(getTimeLeft());
+
+//   useEffect(() => {
+//     const t = setInterval(() => setTimeLeft(getTimeLeft()), 1000);
+//     return () => clearInterval(t);
+//   }, []);
+
+//   function getTimeLeft() {
+//     const diff = Math.max(0, COUNTDOWN_TARGET.getTime() - Date.now());
+//     return {
+//       hours: Math.floor(diff / (1000 * 60 * 60)),
+//       mins: Math.floor((diff / (1000 * 60)) % 60),
+//       secs: Math.floor((diff / 1000) % 60),
+//     };
+//   }
+
+//   const units = [
+//     { label: 'Hours', value: timeLeft.hours },
+//     { label: 'Mins', value: timeLeft.mins },
+//     { label: 'Secs', value: timeLeft.secs },
+//   ];
+
+//   return (
+//     <div className="relative overflow-hidden">
+//       {/* Flyer background image */}
+//       <div
+//         className="absolute inset-0 bg-cover bg-center"
+//         style={{ backgroundImage: "url('/images/event-banner.jpeg')" }}
+//       />
+//       {/* Dark overlay so white/gold text stays legible over the photo */}
+//       <div
+//         className="absolute inset-0"
+//         style={{ background: 'linear-gradient(160deg, rgba(11,22,15,0.75) 0%, rgba(11,22,15,0.55) 60%, rgba(11,22,15,0.85) 100%)' }}
+//       />
+
+//       <div className="max-w-3xl mx-auto px-5 pt-14 pb-10 text-center relative z-10">
+//         <div className="seal mx-auto mb-5">
+//           <span className="font-display text-lg" style={{ color: 'var(--color-gold)' }}>A</span>
+//         </div>
+//         <p className="uppercase tracking-[0.2em] text-[11px] text-white/80 mb-3">
+//           BLACK CULTURE ENTERTAINMENT
+//         </p>
+//         <h1 className="font-display text-white text-4xl sm:text-5xl leading-tight mb-2" style={{ fontWeight: 600 }}>
+//           NWOKE NA ASOMKPALI 2.0
+//                   </h1>
+//         <p className="text-sm text-white/85 max-w-md mx-auto mb-8">
+//           Cast your vote for your favorite nominee in every category — results update live for everyone to see.
+//         </p>
+
+//         <div className="flex justify-center gap-3 sm:gap-5">
+//           {units.map((u) => (
+//             <div key={u.label} className="flex flex-col items-center">
+//               <div
+//                 className="w-16 sm:w-20 rounded-lg py-3 font-mono-tally text-2xl sm:text-3xl font-semibold"
+//                 style={{ background: '#C9A227', color: 'white', border: '1px solid rgba(255,255,255,0.15)' }}
+//               >
+//                 {String(u.value).padStart(2, '0')}
+//               </div>
+//               <span className="text-[10px] uppercase tracking-wide text-white/70 mt-1.5">{u.label}</span>
+//             </div>
+//           ))}
+//         </div>
+//       </div>
+
+//       {/* decorative fade so the page below eases out of the green */}
+//       <div
+//         className="absolute bottom-0 left-0 right-0 h-16"
+//         style={{ background: 'linear-gradient(180deg, transparent, var(--color-paper))' }}
+//       />
+//     </div>
+//   );
+// }
 
 function CategorySkeleton() {
   return (
