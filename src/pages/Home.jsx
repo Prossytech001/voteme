@@ -250,10 +250,10 @@ function Hero() {
             'Voting starts September 13, 2026'}
 
           {countdown.status === 'active' &&
-            'Voting ends September 27, 2026'}
+            'Voting ends September 20, 2026'}
 
           {countdown.status === 'ended' &&
-            'Voting closed on September 27, 2026'}
+            'Voting closed on September 20, 2026'}
         </p>
       </div>
 
