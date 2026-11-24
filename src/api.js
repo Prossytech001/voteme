@@ -47,6 +47,22 @@ export const adminReconcileFull = (adminKey) =>
 export const adminGetEarningsSummary = (adminKey) =>
   api.get('/votes/admin/earnings-summary', adminHeaders(adminKey)).then(r => r.data);
 
+export const adminManualCredit = (adminKey, { nominee_id, vote_count, reason }) =>
+  api.post('/votes/admin/manual-credit', { nominee_id, vote_count, reason }, {
+    headers: { 'x-admin-key': adminKey }, // match whatever header your other admin calls use
+  }).then(res => res.data);
+
+export const adminGetManualCredits = (adminKey) =>
+  api.get('/votes/admin/manual-credits', {
+    headers: { 'x-admin-key': adminKey },
+  }).then(res => res.data);
+
+
+  export const adminDeleteVote = (adminKey, id) =>
+  api.delete(`/votes/admin/${id}`, {
+    headers: { 'x-admin-key': adminKey }, // match your existing header
+  }).then(res => res.data);
+  
 export const getPlatformFee = () => api.get('/settings/platform-fee').then(r => r.data);
 
 export const adminUpdatePlatformFee = (adminKey, feePercent) =>
