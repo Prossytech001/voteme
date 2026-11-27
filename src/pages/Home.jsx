@@ -160,7 +160,7 @@ function Hero() {
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{
-          backgroundImage: "url('/images/event-banner.jpeg')",
+          backgroundImage: "url('/images/lands.png')",
         }}
       />
 
@@ -184,14 +184,14 @@ function Hero() {
         </div>
 
         <p className="uppercase tracking-[0.2em] text-[11px] text-white/80 mb-3">
-          BLACK CULTURE ENTERTAINMENT
+         NNAMDI AZIKIWE UNIVERCITY AWKA
         </p>
 
         <h1
           className="font-display text-white text-4xl sm:text-5xl leading-tight mb-2"
           style={{ fontWeight: 600 }}
         >
-          NWOKE NA ASOMKPALI 2.0
+          DINNER AWARD NIGHT
         </h1>
 
         <p className="text-sm text-white/85 max-w-md mx-auto mb-4">
